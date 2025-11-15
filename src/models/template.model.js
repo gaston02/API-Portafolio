@@ -5,7 +5,7 @@ const templateSchema = new mongoose.Schema(
     path: {
       type: String,
       required: false,
-      unique: false,
+      unique: true,
       trim: true,
       sparse: true,
     },
@@ -14,6 +14,7 @@ const templateSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      sparse: true,
     },
     title: {
       es: {
@@ -41,8 +42,8 @@ const templateSchema = new mongoose.Schema(
     },
     highlights: [
       {
-        es: { type: String, trim: true },
-        en: { type: String, trim: true },
+        es: { type: String, required: true, trim: true },
+        en: { type: String, required: true, trim: true },
       },
     ],
     basePriceCLP: {
