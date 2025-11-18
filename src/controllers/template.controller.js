@@ -4,7 +4,18 @@ import { handleGenericSuccess } from "../utils/success.util.js";
 
 export async function createTemplateController(req, res, next) {
   try {
-    const templateData = req.body;
+    const templateData = {
+      path: req.file?.path,
+      link: req.body.link,
+      title: req.body.title,
+      description: req.body.description,
+      highlights: req.body.highlights,
+      basePriceCLP:
+        req.body.basePriceCLP !== undefined
+          ? Number(req.body.basePriceCLP)
+          : undefined,
+      downloadPath: req.body.downloadPath,
+    };
     const newTemplate = await createTemplate(templateData);
     return handleGenericSuccess(
       res,
