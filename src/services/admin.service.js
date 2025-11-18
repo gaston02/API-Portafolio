@@ -53,3 +53,12 @@ export async function createRootAdminIfNotExists() {
 
   return savedAdmin;
 }
+
+export async function findAdmin(emailAdmin) {
+  try {
+    const admin = await Admin.findOne({ email: emailAdmin, status: true });
+    return admin;
+  } catch (error) {
+    throw new Error(`Error al obtener el Admin: ${error.message}`);
+  }
+}

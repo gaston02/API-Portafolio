@@ -1,4 +1,6 @@
 import Template from "../models/Template.js";
+import { normalizeText } from "../utils/normalizeText.util.js";
+import { translateText } from "../libs/translate.js";
 
 export async function createTemplate(templateData) {
   try {
@@ -18,7 +20,7 @@ export async function createTemplate(templateData) {
     if (existingByLink) {
       throw new Error("El link de demo ya está registrado.");
     }
-    
+
     // Si viene downloadPath, verificar que no esté siendo usado por otro template
     if (downloadPath) {
       const existingByDownload = await Template.findOne({ downloadPath });
@@ -32,15 +34,41 @@ export async function createTemplate(templateData) {
     // Si no vienen highlights, inicializar como array vacío
     const safeHighlights = Array.isArray(highlights) ? highlights : [];
 
+    const normalizedTitleEs = normalizeText(title);
+    const translatedTitle = await translateText(normalizedTitleEs, "en");
+    const normalizedDescriptionEs = normalizeText(description);
+    const translatedDescription = await translateText(
+      normalizedDescriptionEs,
+      "en"
+    );
+
+    // Procesar highlights
+    const processedHighlights = await Promise.all(
+      safeHighlights.map(async (item) => {
+        const normalized = normalizeText(item.es);
+        const translated = await translateText(normalized, "en");
+
+        return {
+          es: normalized,
+          en: translated,
+        };
+      })
+    );
+
     // Construir el nuevo template
     const newTemplate = new Template({
       path: path || undefined, // respeta optional + sparse
       link,
-      title,
-      description,
-      highlights: safeHighlights,
-      basePriceCLP:
-        typeof basePriceCLP === "number" ? basePriceCLP : 0, // default lógico
+      title: {
+        es: normalizedTitleEs,
+        en: translatedTitle,
+      },
+      description: {
+        es: normalizedDescriptionEs,
+        en: translatedDescription,
+      },
+      highlights: processedHighlights,
+      basePriceCLP: typeof basePriceCLP === "number" ? basePriceCLP : 0, // default lógico
       downloadPath: downloadPath || undefined,
       status,
     });
