@@ -1,4 +1,4 @@
-import Template from "../models/Template.js";
+import Template from "../models/template.model.js";
 import { normalizeText } from "../utils/normalizeText.util.js";
 import { translateText } from "../libs/translate.js";
 
@@ -35,18 +35,17 @@ export async function createTemplate(templateData) {
     const safeHighlights = Array.isArray(highlights) ? highlights : [];
 
     const normalizedTitleEs = normalizeText(title);
-    const translatedTitle = await translateText(normalizedTitleEs, "en");
+    const translatedTitle = await translateText(normalizedTitleEs, "EN-GB");
     const normalizedDescriptionEs = normalizeText(description);
     const translatedDescription = await translateText(
       normalizedDescriptionEs,
-      "en"
+      "EN-GB"
     );
 
-    // Procesar highlights
     const processedHighlights = await Promise.all(
       safeHighlights.map(async (item) => {
-        const normalized = normalizeText(item.es);
-        const translated = await translateText(normalized, "en");
+        const normalized = normalizeText(item); // item es string
+        const translated = await translateText(normalized, "en"); // o "EN-GB" si quieres
 
         return {
           es: normalized,

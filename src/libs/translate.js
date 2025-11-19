@@ -4,9 +4,10 @@ import { normalizeText } from "../utils/normalizeText.util.js";
 
 const MYMEMORY_API_URL = MYMEMORY_API;
 
-export async function translateText(text, targetLanguage) {
+export async function translateText(text, targetLanguage = "en") {
+  const normalizedText = normalizeText(text);
+
   try {
-    const normalizedText = normalizeText(text);
     const response = await axios.get(MYMEMORY_API_URL, {
       params: {
         q: normalizedText,
@@ -15,25 +16,31 @@ export async function translateText(text, targetLanguage) {
     });
 
     if (response.data.responseStatus !== 200) {
-      throw new Error(`API error: ${response.data.responseDetails}`);
+      // Si hay error de API, usa el texto original
+      return normalizedText;
     }
 
-    const translations = response.data.matches;
+    const translations = response.data.matches || [];
 
-    // Filtrar traducciones basadas en el source y el target
-    const preferredTranslations = translations.filter(
-      (translation) =>
-        translation.source === "es-ES" && translation.target === targetLanguage
-    );
-
-    if (preferredTranslations.length > 0) {
-      return preferredTranslations[0].translation;
-    } else {
-      throw new Error(
-        "No translations found for the preferred source and target"
-      );
+    // 1) Si la API ya te da una traducción directa, úsala
+    if (response.data.responseData?.translatedText) {
+      return response.data.responseData.translatedText;
     }
+
+    // 2) Intentar encontrar un match con target parecido al idioma objetivo
+    let bestMatch =
+      translations.find((t) =>
+        t.target?.toLowerCase().startsWith(targetLanguage.toLowerCase())
+      ) || translations[0]; // 3) Si no, el primero
+
+    if (bestMatch?.translation) {
+      return bestMatch.translation;
+    }
+
+    // 4) Si no hay nada usable, vuelve el texto original
+    return normalizedText;
   } catch (error) {
-    throw new Error(`Error translating text: ${error.message}`);
+    // No revientes el flujo del template por culpa de la API externa
+    return normalizedText;
   }
 }
