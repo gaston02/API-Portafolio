@@ -1,3 +1,4 @@
+// services/paymentProviders/stripe.service.js
 export default function createStripeProvider(config = {}) {
   // config: { apiKey, webhookSecret, sdkInstance, ... }
 
@@ -8,30 +9,31 @@ export default function createStripeProvider(config = {}) {
       currency = "CLP",
       buyerEmail,
       buyerName,
-      metadata = {}
+      metadata = {},
     } = {}) {
-
       const paymentId = `st_${Date.now()}`;
       const checkoutUrl = `https://stripe.fake/checkout/${paymentId}`;
 
       return {
         paymentId,
         checkoutUrl,
-        raw: { templateId, amount, currency, metadata }
+        raw: { templateId, amount, currency, metadata },
       };
     },
 
-    async parseWebhook(rawEvent = {}) {
-      const body = rawEvent.body || rawEvent;
+    // Versión limpia: recibe body y headers por separado
+    async parseWebhook(body = {}, headers = {}) {
+      // Stripe real manda: body.data.object.id
       const paymentId = body?.data?.object?.id || body?.id || body?.paymentId;
+
       const status = body?.data?.object?.status || body?.status || "pending";
 
       return {
-        valid: true,
+        valid: true, // luego puedes validar firma usando config.webhookSecret + headers
         paymentId,
         status,
         raw: body,
-        extra: { headers: rawEvent.headers }
+        extra: { headers },
       };
     },
 
@@ -39,15 +41,15 @@ export default function createStripeProvider(config = {}) {
       return {
         refunded: true,
         refundId: `st_ref_${Date.now()}`,
-        raw: { paymentId, opts }
+        raw: { paymentId, opts },
       };
     },
 
     async getPaymentStatus(paymentId) {
       return {
         paymentId,
-        status: "approved"
+        status: "approved",
       };
-    }
+    },
   };
 }

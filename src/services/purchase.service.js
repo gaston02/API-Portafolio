@@ -82,3 +82,56 @@ export async function createPurchase(
     throw new Error(`Error al crear purchase: ${error.message}`);
   }
 }
+
+export async function updatePurchaseByPaymentId(paymentId, updateData, { purchaseModel = Purchase, session = null } = {}) {
+  try {
+    const updated = await purchaseModel.findOneAndUpdate(
+      { paymentId },
+      updateData,
+      {
+        new: true,
+        session,
+      }
+    ).exec();
+
+    if (!updated) {
+      throw new Error("Purchase no encontrada para actualizar.");
+    }
+
+    return updated;
+  } catch (err) {
+    throw new Error(`Error al actualizar purchase: ${err.message}`);
+  }
+}
+
+export async function markPurchaseRefunded(
+  paymentId,
+  { refundInfo } = {},
+  { purchaseModel = Purchase, session = null } = {}
+) {
+  try {
+    const updated = await purchaseModel.findOneAndUpdate(
+      { paymentId },
+      {
+        status: "refunded",
+        $set: {
+          refundInfo: refundInfo || null,
+          refundAt: new Date(),
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    ).exec();
+
+    if (!updated) {
+      throw new Error("Purchase no encontrada para marcar como refund.");
+    }
+
+    return updated;
+  } catch (err) {
+    throw new Error(`Error al marcar refund: ${err.message}`);
+  }
+}
+

@@ -8,30 +8,37 @@ export default function createPaypalProvider(config = {}) {
       currency = "CLP",
       buyerEmail,
       buyerName,
-      metadata = {}
+      metadata = {},
     } = {}) {
-
       const paymentId = `pp_${Date.now()}`;
       const checkoutUrl = `https://paypal.fake/checkout/${paymentId}`;
 
       return {
         paymentId,
         checkoutUrl,
-        raw: { templateId, amount, currency, metadata }
+        raw: { templateId, amount, currency, metadata },
       };
     },
 
-    async parseWebhook(rawEvent = {}) {
-      const body = rawEvent.body || rawEvent;
-      const paymentId = body?.resource?.id || body?.id || body?.paymentId;
-      const status = body?.resource?.status || body?.status || "pending";
+    // Versión limpia: sin rawEvent, recibe body y headers directo
+    async parseWebhook(body = {}, headers = {}) {
+      // En PayPal real, casi siempre viene en body.resource
+      const paymentId =
+        body?.resource?.id ||
+        body?.id ||
+        body?.paymentId;
+
+      const status =
+        body?.resource?.status ||
+        body?.status ||
+        "pending";
 
       return {
-        valid: true,
+        valid: true,       // luego aquí puedes usar config.webhookId y headers para validar firma
         paymentId,
         status,
         raw: body,
-        extra: { headers: rawEvent.headers }
+        extra: { headers },
       };
     },
 
@@ -39,15 +46,15 @@ export default function createPaypalProvider(config = {}) {
       return {
         refunded: true,
         refundId: `pp_ref_${Date.now()}`,
-        raw: { paymentId, opts }
+        raw: { paymentId, opts },
       };
     },
 
     async getPaymentStatus(paymentId) {
       return {
         paymentId,
-        status: "approved"
+        status: "approved",
       };
-    }
+    },
   };
 }
