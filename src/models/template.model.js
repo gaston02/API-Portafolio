@@ -58,6 +58,11 @@ const templateSchema = new mongoose.Schema(
         trim: true,
         sparse: true
     },
+    // Control opcional: cuántas veces descargó
+    downloadCount: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: Boolean,
       required: true,

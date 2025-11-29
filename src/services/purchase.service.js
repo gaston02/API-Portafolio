@@ -1,5 +1,5 @@
-import Purchase from "../models/Purchase.js";
-import Template from "../models/Template.js";
+import Purchase from "../models/purchase.model.js";
+import Template from "../models/template.model.js";
 
 export async function createPurchase(
   purchaseData = {},
@@ -16,6 +16,7 @@ export async function createPurchase(
       buyerName,
       buyerIp,
       downloadLimit,
+      status,
     } = purchaseData;
 
     // --- idempotencia primaria: si ya existe paymentId devolvemos el registro existente ---
@@ -24,7 +25,7 @@ export async function createPurchase(
       return existingByPayment;
     }
 
-    // --- obtener template para obtener precio y validar existencia (estilo createTemplate) ---
+    // --- obtener template para validar existencia y precio ---
     const template = await templateModel
       .findById(templateId)
       .select("basePriceCLP")
@@ -33,17 +34,16 @@ export async function createPurchase(
       throw new Error("Template no encontrado.");
     }
 
-    // --- determinar monto final (política simple: si el cliente envía amount debe coincidir) ---
-    // Nota: si quieres otra política (aceptar overrides con metadata), lo defines aquí.
+    // --- determinar monto final ---
     let finalAmount =
       typeof incomingAmount === "number"
         ? incomingAmount
         : template.basePriceCLP || 0;
+
     if (
       typeof incomingAmount === "number" &&
       incomingAmount !== template.basePriceCLP
     ) {
-      // Decide tu política. Aquí decidimos rechazar para evitar manipulaciones.
       throw new Error(
         "El monto proporcionado no coincide con el precio del template."
       );
@@ -56,26 +56,29 @@ export async function createPurchase(
       provider,
       amount: finalAmount,
       currency,
-      status: "pending",
+      status: status ?? "pending",
       buyerEmail,
       buyerName,
       buyerIp,
-      downloadCount: 0,
+      downloadCount: 1,
     };
 
-    // --- intento de creación con manejo de condición de carrera sobre unique index ---
     try {
-      // Uso create con array para poder pasar session si hace falta
       const [created] = await purchaseModel.create([toCreate], { session });
+
+      // ✅ aquí sí: incrementamos el contador GLOBAL del template
+      await templateModel.updateOne(
+        { _id: templateId },
+        { $inc: { downloadCount: 1 } },
+        { session }
+      );
+
       return created;
     } catch (err) {
-      // Si otro proceso insertó el mismo paymentId entre el findOne y el create,
-      // manejamos la duplicidad devolviendo el registro existente.
       if (err && err.code === 11000) {
         const found = await purchaseModel.findOne({ paymentId }).exec();
         if (found) return found;
       }
-      // cualquier otro error lo propagamos con el formato que usas
       throw err;
     }
   } catch (error) {
@@ -83,16 +86,18 @@ export async function createPurchase(
   }
 }
 
-export async function updatePurchaseByPaymentId(paymentId, updateData, { purchaseModel = Purchase, session = null } = {}) {
+export async function updatePurchaseByPaymentId(
+  paymentId,
+  updateData,
+  { purchaseModel = Purchase, session = null } = {}
+) {
   try {
-    const updated = await purchaseModel.findOneAndUpdate(
-      { paymentId },
-      updateData,
-      {
+    const updated = await purchaseModel
+      .findOneAndUpdate({ paymentId }, updateData, {
         new: true,
         session,
-      }
-    ).exec();
+      })
+      .exec();
 
     if (!updated) {
       throw new Error("Purchase no encontrada para actualizar.");
@@ -110,20 +115,22 @@ export async function markPurchaseRefunded(
   { purchaseModel = Purchase, session = null } = {}
 ) {
   try {
-    const updated = await purchaseModel.findOneAndUpdate(
-      { paymentId },
-      {
-        status: "refunded",
-        $set: {
-          refundInfo: refundInfo || null,
-          refundAt: new Date(),
+    const updated = await purchaseModel
+      .findOneAndUpdate(
+        { paymentId },
+        {
+          status: "refunded",
+          $set: {
+            refundInfo: refundInfo || null,
+            refundAt: new Date(),
+          },
         },
-      },
-      {
-        new: true,
-        session,
-      }
-    ).exec();
+        {
+          new: true,
+          session,
+        }
+      )
+      .exec();
 
     if (!updated) {
       throw new Error("Purchase no encontrada para marcar como refund.");
@@ -134,4 +141,3 @@ export async function markPurchaseRefunded(
     throw new Error(`Error al marcar refund: ${err.message}`);
   }
 }
-

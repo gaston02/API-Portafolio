@@ -58,12 +58,6 @@ const purchaseSchema = new Schema(
       trim: true,
     },
     buyerIp: { type: String, required: false, trim: true },
-
-    // Control opcional: cuántas veces descargó
-    downloadCount: {
-      type: Number,
-      default: 0,
-    },
   },
   { timestamps: true }
 );

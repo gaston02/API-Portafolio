@@ -13,3 +13,5 @@ router.post("/", validateSchema(createPurchaseSchema), createPaymentController);
 
 // Webhooks generico de servicio de pasarela de pago
 router.post("/webhooks/:provider", genericWebhookController);
+
+export default router;

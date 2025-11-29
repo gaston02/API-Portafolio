@@ -2,31 +2,33 @@ import {
   createPaymentIntent,
   handleWebhook,
   refundPayment,
-} from "../services/paymentService.js";
+} from "../services/payment.service.js";
 
-const SUPPORTED_PROVIDERS = ["mercadopago", "stripe", "paypal"];
+const SUPPORTED_PROVIDERS = ["mercadopago", "stripe", "paypal", "other"];
 
 export async function createPaymentController(req, res) {
   try {
     const purchasePayload = {
       templateId: req.body.templateId,
-      providerName: req.body.provider, // 'mercadopago' | 'stripe' | 'paypal'
+      provider: req.body.provider, // 'mercadopago' | 'stripe' | 'paypal' | 'other'
       buyerEmail: req.body.buyerEmail,
       buyerName: req.body.buyerName,
-      buyerIp: req.ip, // opcional, si te interesa
-      amount: req.body.amount, // opcional, tu service valida contra template
+      buyerIp: req.ip,
+      amount: req.body.amount,
       currency: req.body.currency || "CLP",
-      metadata: req.body.metadata, // opcional
+      metadata: req.body.metadata,
     };
 
-    const { purchase, providerResponse } = await createPaymentIntent(
-      purchasePayload
-    );
+    const {
+      purchase,
+      providerResponse,
+      checkoutUrl,
+    } = await createPaymentIntent(purchasePayload);
 
     return res.status(201).json({
       message: "Intento de pago creado con éxito",
       purchase,
-      checkoutUrl: providerResponse.checkoutUrl || null,
+      checkoutUrl,
       providerResponse,
     });
   } catch (error) {

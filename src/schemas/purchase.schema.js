@@ -16,7 +16,7 @@ export const createPurchaseSchema = z.object({
         message: "El ID debe ser una cadena hexadecimal de 24 caracteres",
       }
     ),
-  provider: z.enum(["mercadopago", "stripe", "paypal"]),
+  provider: z.enum(["mercadopago", "stripe", "paypal", "other"]),
   buyerEmail: z
     .string()
     .optional()
@@ -39,6 +39,6 @@ export const createPurchaseSchema = z.object({
           "El nombre no puede estar vacío, ni puede tener menos de 3 caracteres",
       }
     ),
-  amount: z.number().positive().optional(),
+  amount: z.number().nonnegative().optional(),
   currency: z.string().default("CLP"),
 });

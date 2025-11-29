@@ -1,5 +1,5 @@
-import providerFactory from "./providerFactory.js";
-import * as purchaseService from "./purchaseService.js";
+import providerFactory from "./providerFactory.service.js";
+import * as purchaseService from "./purchase.service.js";
 
 /**
  * createPaymentIntent
@@ -29,39 +29,87 @@ export async function createPaymentIntent(
   } = {}
 ) {
   try {
-    const { providerName } = purchasePayload;
-    if (!providerName) throw new Error("providerName es requerido.");
+    const {
+      provider,
+      templateId,
+      amount = 0,
+      currency,
+      buyerEmail,
+      buyerName,
+      buyerIp,
+    } = purchasePayload;
 
-    // obtener adapter (puede inicializar SDK con keys internas)
-    const provider = factory(providerName);
-    if (!provider) throw new Error(`Provider no configurado: ${providerName}`);
+    const effectiveProvider = provider ?? "other";
 
-    // 1) crear pago en la pasarela (adapter debe devolver al menos paymentId)
-    //    provider.createPayment debe ser idempotente y aceptar metadata/idempotencyKey cuando aplique
-    const providerResponse = await provider.createPayment(purchasePayload);
+    // 1) FLUJO PARA TEMPLATES GRATIS (sin pasarela)
+    //    amount = 0 o provider vacío ("")
+    if (!effectiveProvider || amount === 0) {
+      // siempre queremos un paymentId, aunque sea interno/fake
+      const fakePaymentId = `free_${templateId}_${Date.now()}`;
+
+      const createdPurchase = await purchaseSvc.createPurchase(
+        {
+          templateId,
+          paymentId: fakePaymentId,
+          provider: effectiveProvider,
+          amount,
+          currency,
+          status: "approved",
+          buyerEmail,
+          buyerName,
+          buyerIp,
+          providerResponse: null,
+        },
+        { session }
+      );
+
+      return {
+        purchase: createdPurchase,
+        providerResponse: null,
+        checkoutUrl: null, // el front sabe: si es null → descarga directa
+      };
+    }
+
+    // 2) FLUJO NORMAL CON PROVEEDOR (pago real)
+    const paymentProvider = factory(effectiveProvider);
+
+    if (
+      !paymentProvider ||
+      typeof paymentProvider.createPayment !== "function"
+    ) {
+      throw new Error(
+        `Proveedor no soportado o mal configurado: ${effectiveProvider}`
+      );
+    }
+
+    const providerResponse = await paymentProvider.createPayment(
+      purchasePayload
+    );
 
     if (!providerResponse || !providerResponse.paymentId) {
       throw new Error("Respuesta inválida del proveedor: falta paymentId.");
     }
 
-    // 2) crear registro Purchase en BD usando tu purchaseService (idempotente por paymentId)
-    //    Pasamos providerResponse para auditoría; purchaseService retornará existente si ya existe
     const createdPurchase = await purchaseSvc.createPurchase(
       {
-        templateId: purchasePayload.templateId,
+        templateId,
         paymentId: providerResponse.paymentId,
-        provider: providerName,
-        amount: purchasePayload.amount,
-        currency: purchasePayload.currency,
-        buyerEmail: purchasePayload.buyerEmail,
-        buyerName: purchasePayload.buyerName,
-        buyerIp: purchasePayload.buyerIp,
+        provider: effectiveProvider,
+        amount,
+        currency,
+        buyerEmail,
+        buyerName,
+        buyerIp,
         providerResponse,
       },
       { session }
     );
 
-    return { purchase: createdPurchase, providerResponse };
+    return {
+      purchase: createdPurchase,
+      providerResponse,
+      checkoutUrl: providerResponse.checkoutUrl ?? null,
+    };
   } catch (error) {
     throw new Error(`Error en createPaymentIntent: ${error.message}`);
   }
