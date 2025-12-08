@@ -42,7 +42,7 @@ const purchaseSchema = new Schema(
     // Estado del pago según confirmación de la pasarela
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "refunded"],
+      enum: ["success", "failure", "pending", "refunded"],
       default: "pending",
     },
 

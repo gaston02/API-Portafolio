@@ -1,16 +1,34 @@
 import { Router } from "express";
-import { createTemplateController } from "../controllers/template.controller.js";
-import { createTemplateSchema } from "../schemas/template.schema.js";
-import { validateSchema } from "../middlewares/validator.middleware.js";
+import {
+  createTemplateController,
+  updateTemplateController,
+} from "../controllers/template.controller.js";
+import {
+  createTemplateSchema,
+  updateTemplateSchema,
+} from "../schemas/template.schema.js";
+import { idSchema } from "../schemas/id.schema.js";
+import {
+  validateSchema,
+  validateSchemaParams,
+} from "../middlewares/validator.middleware.js";
 import { authMiddleware } from "../middlewares/verifyToken.middleware.js";
 
 const router = Router();
 
 router.post(
   "/template",
-  validateSchema(createTemplateSchema),
   authMiddleware,
+  validateSchema(createTemplateSchema),
   createTemplateController
+);
+
+router.put(
+  "/template/:id",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  validateSchema(updateTemplateSchema),
+  updateTemplateController
 );
 
 export default router;

@@ -78,3 +78,92 @@ export async function createTemplate(templateData) {
     throw new Error(`Error al crear el template: ${error.message}`);
   }
 }
+
+export async function updateTemplate(templateId, templateData) {
+  try {
+    // 1) Verificar que el template exista
+    const existingTemplate = await Template.findById(templateId);
+    if (!existingTemplate) {
+      throw new Error("El template no existe.");
+    }
+
+    // 2) Objeto donde juntamos solo lo que queremos actualizar
+    const updatedData = {};
+
+    // --- TITLE (string en español → { es, en }) ---
+    if (typeof templateData.title === "string") {
+      const normalizedTitleEs = normalizeText(templateData.title);
+      const translatedTitleEn = await translateText(normalizedTitleEs, "EN-GB");
+
+      updatedData.title = {
+        es: normalizedTitleEs,
+        en: translatedTitleEn,
+      };
+    }
+
+    // --- DESCRIPTION (string en español → { es, en }) ---
+    if (typeof templateData.description === "string") {
+      const normalizedDescriptionEs = normalizeText(templateData.description);
+      const translatedDescriptionEn = await translateText(
+        normalizedDescriptionEs,
+        "EN-GB"
+      );
+
+      updatedData.description = {
+        es: normalizedDescriptionEs,
+        en: translatedDescriptionEn,
+      };
+    }
+
+    // --- HIGHLIGHTS (array de strings en español → array de { es, en }) ---
+    if (Array.isArray(templateData.highlights)) {
+      const translatedHighlights = [];
+      for (const h of templateData.highlights) {
+        const normalizedEs = normalizeText(h);
+        const translatedEn = await translateText(normalizedEs, "EN-GB");
+        translatedHighlights.push({
+          es: normalizedEs,
+          en: translatedEn,
+        });
+      }
+      updatedData.highlights = translatedHighlights;
+    }
+
+    // --- CAMPOS SIMPLES QUE NO REQUIEREN TRADUCCIÓN ---
+    if (typeof templateData.path === "string") {
+      updatedData.path = templateData.path.trim();
+    }
+
+    if (typeof templateData.link === "string") {
+      updatedData.link = templateData.link.trim();
+    }
+
+    if (typeof templateData.downloadPath === "string") {
+      updatedData.downloadPath = templateData.downloadPath.trim();
+    }
+
+    if (typeof templateData.basePriceCLP === "number") {
+      updatedData.basePriceCLP = templateData.basePriceCLP;
+    }
+
+    if (typeof templateData.status === "boolean") {
+      updatedData.status = templateData.status;
+    }
+
+    // 3) Si no hay nada que actualizar, lanzamos un error opcionalmente
+    if (Object.keys(updatedData).length === 0) {
+      throw new Error("No se proporcionaron campos para actualizar.");
+    }
+
+    // 4) Actualizar el documento en la BD
+    const updatedTemplate = await Template.findByIdAndUpdate(
+      templateId,
+      { $set: updatedData },
+      { new: true }
+    );
+
+    return updatedTemplate;
+  } catch (error) {
+    throw new Error(`Error al actualizar el template: ${error.message}`);
+  }
+}
