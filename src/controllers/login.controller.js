@@ -44,3 +44,15 @@ export async function loginController(req, res, next) {
     next(error);
   }
 }
+
+export async function logout(req, res) {
+  try {
+    res.cookie("token", "", {
+      expires: new Date(0),
+    });
+    return res.sendStatus(204);
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error);
+    return res.status(500).send("Error al cerrar sesión");
+  }
+}

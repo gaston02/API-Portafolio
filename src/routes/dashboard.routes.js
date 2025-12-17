@@ -1,7 +1,12 @@
 import { Router } from "express";
 import {
   createTemplateController,
+  getTemplatesController,
   updateTemplateController,
+  updateTemplateEnController,
+  deleteTemplateController,
+  getTemplatesDeletesController,
+  avtiveTemplateDeleteController,
 } from "../controllers/template.controller.js";
 import {
   createTemplateSchema,
@@ -23,12 +28,37 @@ router.post(
   createTemplateController
 );
 
+router.get("/templates", authMiddleware, getTemplatesController);
+
 router.put(
   "/template/:id",
   authMiddleware,
   validateSchemaParams(idSchema),
   validateSchema(updateTemplateSchema),
   updateTemplateController
+);
+
+router.put(
+  "/template/:id/en",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  updateTemplateEnController
+);
+
+router.delete(
+  "/template/:id",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  deleteTemplateController
+);
+
+router.get("/templates/deletes", authMiddleware, getTemplatesDeletesController);
+
+router.put(
+  "/template/:id/delete",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  avtiveTemplateDeleteController
 );
 
 export default router;
