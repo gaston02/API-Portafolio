@@ -16,15 +16,29 @@ import { idSchema } from "../schemas/id.schema.js";
 import {
   validateSchema,
   validateSchemaParams,
+  validateTemplateSchemaWithFileAndCleanup,
 } from "../middlewares/validator.middleware.js";
+import {
+  setTemplateImagePath,
+  uploadImage,
+} from "../middlewares/uploadImage.middleware.js";
 import { authMiddleware } from "../middlewares/verifyToken.middleware.js";
+import { IMAGES_DIR } from "../config.js";
+
+const imagesDir = IMAGES_DIR;
 
 const router = Router();
 
 router.post(
   "/template",
   authMiddleware,
-  validateSchema(createTemplateSchema),
+  uploadImage,
+  setTemplateImagePath,
+  validateTemplateSchemaWithFileAndCleanup(
+    createTemplateSchema,
+    "templateImagePath",
+    imagesDir
+  ),
   createTemplateController
 );
 
@@ -34,7 +48,13 @@ router.put(
   "/template/:id",
   authMiddleware,
   validateSchemaParams(idSchema),
-  validateSchema(updateTemplateSchema),
+  uploadImage,
+  setTemplateImagePath,
+  validateTemplateSchemaWithFileAndCleanup(
+    updateTemplateSchema,
+    "templateImagePath",
+    imagesDir
+  ),
   updateTemplateController
 );
 

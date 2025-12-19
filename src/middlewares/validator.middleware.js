@@ -71,6 +71,11 @@ export const validateTemplateSchemaWithFileAndCleanup =
       };
 
       schema.parse(data);
+
+      req.body.highlights = data.highlights;
+      req.body.basePriceCLP = data.basePriceCLP;
+      req.body.path = data.path;
+
       next();
     } catch (error) {
       // ✅ Cleanup del archivo si ya se subió (da lo mismo si fue Zod o no)
@@ -101,3 +106,4 @@ export const validateTemplateSchemaWithFileAndCleanup =
       return res.status(500).json({ error: "Error interno del servidor" });
     }
   };
+

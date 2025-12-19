@@ -13,18 +13,17 @@ import { handleGenericSuccess } from "../utils/success.util.js";
 export async function createTemplateController(req, res, next) {
   try {
     const templateData = {
-      path: req.file?.path,
+      path: req.templateImagePath,
       link: req.body.link,
       title: req.body.title,
       description: req.body.description,
       highlights: req.body.highlights,
-      basePriceCLP:
-        req.body.basePriceCLP !== undefined
-          ? Number(req.body.basePriceCLP)
-          : undefined,
+      basePriceCLP: req.body.basePriceCLP,
       downloadPath: req.body.downloadPath,
     };
+
     const newTemplate = await createTemplate(templateData);
+
     return handleGenericSuccess(
       res,
       201,
@@ -34,7 +33,7 @@ export async function createTemplateController(req, res, next) {
   } catch (error) {
     return handleGenericError(
       res,
-      400,
+      500,
       `Error al crear template: ${error.message}`
     );
   }
@@ -51,7 +50,24 @@ export async function getTemplatesController(req, res, next) {
 
 export async function updateTemplateController(req, res, next) {
   const id = req.params.id;
-  const templateData = req.body;
+
+  // Partimos con lo que venga en body
+  const templateData = { ...req.body };
+
+  // ✅ Si se subió una imagen, usarla como path
+  if (req.templateImagePath) {
+    templateData.path = req.templateImagePath;
+  }
+
+  // (Opcional pero recomendado) Normalizar basePriceCLP si viene por form-data
+  // porque suele llegar como string
+  if (
+    templateData.basePriceCLP !== undefined &&
+    templateData.basePriceCLP !== ""
+  ) {
+    const n = Number(templateData.basePriceCLP);
+    if (!Number.isNaN(n)) templateData.basePriceCLP = n;
+  }
 
   try {
     const updatedTemplate = await updateTemplate(id, templateData);
@@ -62,8 +78,8 @@ export async function updateTemplateController(req, res, next) {
       "Template actualizado con éxito!"
     );
   } catch (error) {
-    if (error.message.includes("template no existe")) {
-      handleGenericError(res, 404, `template no encontrado`);
+    if (error.message.toLowerCase().includes("template no existe")) {
+      handleGenericError(res, 404, "template no encontrado");
     } else {
       handleGenericError(
         res,

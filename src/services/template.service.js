@@ -1,6 +1,9 @@
 import Template from "../models/template.model.js";
 import { normalizeText } from "../utils/normalizeText.util.js";
 import { translateText } from "../libs/translate.js";
+import { IMAGES_DIR } from "../config.js";
+
+const imagesDir = IMAGES_DIR;
 
 export async function createTemplate(templateData) {
   try {
@@ -79,95 +82,158 @@ export async function createTemplate(templateData) {
   }
 }
 
-export async function updateTemplate(templateId, templateData) {
-  try {
-    // 1) Verificar que el template exista
-    const existingTemplate = await Template.findOne({
-      _id: templateId,
-      status: true,
-    });
-    if (!existingTemplate) {
-      throw new Error("El template no existe.");
-    }
+export async function updateTemplate(templateId, templateData, imagesDir) {
+  // 1) Armar solo lo que se actualizará
+  const updatedData = {};
 
-    // 2) Objeto donde juntamos solo lo que queremos actualizar
-    const updatedData = {};
+  // Guardamos newPath si viene, para decidir cleanup después
+  const newPath =
+    typeof templateData.path === "string" ? templateData.path.trim() : null;
 
-    // --- TITLE (string en español → { es, en }) ---
-    if (typeof templateData.title === "string") {
-      const normalizedTitleEs = normalizeText(templateData.title);
-      const translatedTitleEn = await translateText(normalizedTitleEs, "EN-GB");
+  // --- TITLE (string ES -> {es,en}) ---
+  if (typeof templateData.title === "string") {
+    const normalizedTitleEs = normalizeText(templateData.title);
+    const translatedTitleEn = await translateText(normalizedTitleEs, "EN-GB");
+    updatedData.title = { es: normalizedTitleEs, en: translatedTitleEn };
+  }
 
-      updatedData.title = {
-        es: normalizedTitleEs,
-        en: translatedTitleEn,
-      };
-    }
+  // --- DESCRIPTION (string ES -> {es,en}) ---
+  if (typeof templateData.description === "string") {
+    const normalizedDescriptionEs = normalizeText(templateData.description);
+    const translatedDescriptionEn = await translateText(
+      normalizedDescriptionEs,
+      "EN-GB"
+    );
+    updatedData.description = {
+      es: normalizedDescriptionEs,
+      en: translatedDescriptionEn,
+    };
+  }
 
-    // --- DESCRIPTION (string en español → { es, en }) ---
-    if (typeof templateData.description === "string") {
-      const normalizedDescriptionEs = normalizeText(templateData.description);
-      const translatedDescriptionEn = await translateText(
-        normalizedDescriptionEs,
-        "EN-GB"
-      );
+  // --- HIGHLIGHTS (array strings OR array {es} -> array {es,en}) ---
+  if (Array.isArray(templateData.highlights)) {
+    const normalizedEsList = templateData.highlights
+      .map((item) => {
+        const esText = typeof item === "string" ? item : item?.es;
+        if (typeof esText !== "string") return null;
+        return normalizeText(esText);
+      })
+      .filter(Boolean);
 
-      updatedData.description = {
-        es: normalizedDescriptionEs,
-        en: translatedDescriptionEn,
-      };
-    }
-
-    // --- HIGHLIGHTS (array de strings en español → array de { es, en }) ---
-    if (Array.isArray(templateData.highlights)) {
-      const translatedHighlights = [];
-      for (const h of templateData.highlights) {
-        const normalizedEs = normalizeText(h);
-        const translatedEn = await translateText(normalizedEs, "EN-GB");
-        translatedHighlights.push({
-          es: normalizedEs,
-          en: translatedEn,
-        });
-      }
-      updatedData.highlights = translatedHighlights;
-    }
-
-    // --- CAMPOS SIMPLES QUE NO REQUIEREN TRADUCCIÓN ---
-    if (typeof templateData.path === "string") {
-      updatedData.path = templateData.path.trim();
-    }
-
-    if (typeof templateData.link === "string") {
-      updatedData.link = templateData.link.trim();
-    }
-
-    if (typeof templateData.downloadPath === "string") {
-      updatedData.downloadPath = templateData.downloadPath.trim();
-    }
-
-    if (typeof templateData.basePriceCLP === "number") {
-      updatedData.basePriceCLP = templateData.basePriceCLP;
-    }
-
-    if (typeof templateData.status === "boolean") {
-      updatedData.status = templateData.status;
-    }
-
-    // 3) Si no hay nada que actualizar, lanzamos un error opcionalmente
-    if (Object.keys(updatedData).length === 0) {
-      throw new Error("No se proporcionaron campos para actualizar.");
-    }
-
-    // 4) Actualizar el documento en la BD
-    const updatedTemplate = await Template.findByIdAndUpdate(
-      templateId,
-      { $set: updatedData },
-      { new: true }
+    const translatedEnList = await Promise.all(
+      normalizedEsList.map((es) => translateText(es, "EN-GB"))
     );
 
-    return updatedTemplate;
-  } catch (error) {
-    throw new Error(`Error al actualizar el template: ${error.message}`);
+    updatedData.highlights = normalizedEsList.map((es, i) => ({
+      es,
+      en: translatedEnList[i],
+    }));
+  }
+
+  // --- CAMPOS SIMPLES (sin traducción) ---
+  if (newPath) updatedData.path = newPath;
+
+  if (typeof templateData.link === "string") {
+    updatedData.link = templateData.link.trim();
+  }
+
+  if (typeof templateData.downloadPath === "string") {
+    updatedData.downloadPath = templateData.downloadPath.trim();
+  }
+
+  // basePriceCLP: acepta number o string numérico
+  if (typeof templateData.basePriceCLP === "number") {
+    updatedData.basePriceCLP = templateData.basePriceCLP;
+  } else if (
+    typeof templateData.basePriceCLP === "string" &&
+    templateData.basePriceCLP !== ""
+  ) {
+    const n = Number(templateData.basePriceCLP);
+    if (Number.isFinite(n)) updatedData.basePriceCLP = n;
+  }
+
+  if (typeof templateData.status === "boolean") {
+    updatedData.status = templateData.status;
+  }
+
+  // 2) Si no hay nada que actualizar
+  if (Object.keys(updatedData).length === 0) {
+    throw new Error("No se proporcionaron campos para actualizar.");
+  }
+
+  // 3) Actualizar en BD
+  const updatedTemplate = await Template.findOneAndUpdate(
+    { _id: templateId, status: true },
+    { $set: updatedData },
+    { new: true }
+  );
+
+  if (!updatedTemplate) {
+    throw new Error("El template no existe.");
+  }
+
+  // 4) Cleanup: borrar imagen anterior si cambió el path
+  // Solo tiene sentido si vino un newPath
+  if (newPath) {
+    // Si imagesDir no viene, mejor no intentar borrar (evitas borrar mal)
+    if (!imagesDir) {
+      console.warn(
+        "imagesDir no provisto: se actualizó path pero no se eliminó imagen anterior."
+      );
+    } else {
+      await deleteOldTemplateImageIfChanged({
+        templateId,
+        newPath,
+        imagesDir,
+        onlyIfStatusTrue: true,
+      });
+    }
+  }
+
+  return updatedTemplate;
+}
+
+/**
+ * Borra la imagen anterior de un template si:
+ * - existe un oldPath
+ * - oldPath !== newPath
+ * - el archivo está en uploadsDir
+ *
+ * Si el archivo no existe (ENOENT), no hace nada.
+ */
+export async function deleteOldTemplateImageIfChanged({
+  templateId,
+  newPath,
+  uploadsDir,
+  onlyIfStatusTrue = true, // opcional por si quieres respetar tu regla
+}) {
+  // 1) Traer el template actual (solo necesitamos path)
+  const query = onlyIfStatusTrue
+    ? { _id: templateId, status: true }
+    : { _id: templateId };
+
+  const template = await Template.findOne(query).select("path");
+  if (!template) {
+    throw new Error("El template no existe.");
+  }
+
+  const oldPath = template.path;
+
+  // 2) Si no hay oldPath o no hay newPath, o son iguales => no hay nada que borrar
+  if (!oldPath || !newPath || oldPath === newPath) return;
+
+  // 3) Intentar borrar archivo viejo (sin romper si no existe)
+  const oldFilePath = path.join(uploadsDir, oldPath);
+
+  try {
+    await fs.unlink(oldFilePath);
+  } catch (err) {
+    if (err?.code === "ENOENT") {
+      // ya no existe => ok
+      return;
+    }
+    // acá decide: o lanzas error, o solo logueas
+    throw new Error(`No se pudo eliminar la imagen anterior: ${err.message}`);
   }
 }
 

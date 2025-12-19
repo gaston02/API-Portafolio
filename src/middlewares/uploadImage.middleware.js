@@ -26,6 +26,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+export const setTemplateImagePath = (req, res, next) => {
+  req.templateImagePath = req.file?.filename;
+  next();
+};
+
 export const uploadImage = multer({
   storage: storage,
   fileFilter: fileFilter,
