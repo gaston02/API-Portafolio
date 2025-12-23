@@ -8,10 +8,12 @@ import {
   getTemplatesDeletesController,
   avtiveTemplateDeleteController,
 } from "../controllers/template.controller.js";
+import { createProjectController } from "../controllers/project.controller.js";
 import {
   createTemplateSchema,
   updateTemplateSchema,
 } from "../schemas/template.schema.js";
+import { createProjectSchema } from "../schemas/project.schema.js";
 import { idSchema } from "../schemas/id.schema.js";
 import {
   validateSchema,
@@ -40,6 +42,19 @@ router.post(
     imagesDir
   ),
   createTemplateController
+);
+
+router.post(
+  "/project",
+  authMiddleware,
+  uploadImage,
+  setTemplateImagePath,
+  validateTemplateSchemaWithFileAndCleanup(
+    createProjectSchema,
+    "templateImagePath",
+    imagesDir
+  ),
+  createProjectController
 );
 
 router.get("/templates", authMiddleware, getTemplatesController);
