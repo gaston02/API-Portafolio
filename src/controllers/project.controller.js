@@ -1,4 +1,4 @@
-import { createProject } from "../services/project.service.js";
+import { createProject, updateProject } from "../services/project.service.js";
 import { handleGenericError } from "../utils/error.util.js";
 import { handleGenericSuccess } from "../utils/success.util.js";
 
@@ -22,5 +22,38 @@ export async function createProjectController(req, res, next) {
     );
   } catch (error) {
     return handleGenericError(res, 500, `Error al crear el proyecto: ${error}`);
+  }
+}
+
+export async function updateProjectController(req, res, next) {
+  const id = req.params.id;
+
+  // Partimos con lo que venga en body
+  const projectData = { ...req.body };
+
+  // ✅ Si se subió una imagen, usarla como path
+  if (req.templateImagePath) {
+    projectData.path = req.templateImagePath;
+  }
+
+  try {
+    const updatedProject = await updateProject(id, projectData);
+    return handleGenericSuccess(
+      res,
+      200,
+      updatedProject,
+      "Proyecto actualizado con éxito!"
+    );
+  } catch (error) {
+    if (error.message.toLowerCase().includes("proyecto no existe")) {
+      handleGenericError(res, 404, "proyecto no encontrado");
+    } else {
+      handleGenericError(
+        res,
+        400,
+        `Error al actualizar el proyecto: ${error.message}`
+      );
+    }
+    next(error);
   }
 }

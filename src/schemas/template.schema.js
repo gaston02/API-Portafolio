@@ -35,13 +35,11 @@ export const createTemplateSchema = z.object({
       message: "La descripción no puede estar vacía",
     }),
 
-  highlights: z
-    .array(
-      z.string().refine((data) => data.trim() !== "", {
-        message: "El highlight no puede estar vacío",
-      })
-    )
-    .optional(),
+  highlights: z.array(
+    z.string().refine((data) => data.trim() !== "", {
+      message: "El highlight no puede estar vacío",
+    })
+  ),
 
   basePriceCLP: z
     .number()
@@ -103,13 +101,11 @@ export const updateTemplateSchema = z.object({
     .refine((data) => data === undefined || data.trim() !== "", {
       message: "La descripción no puede estar vacía",
     }),
-  highlights: z
-    .array(
-      z.string().refine((data) => data.trim() !== "", {
-        message: "El highlight no puede estar vacío",
-      })
-    )
-    .optional(),
+  highlights: z.array(
+    z.string().refine((data) => data.trim() !== "", {
+      message: "El highlight no puede estar vacío",
+    })
+  ),
   basePriceCLP: z
     .number()
     .nonnegative("El precio no puede ser negativo")
