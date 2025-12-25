@@ -10,16 +10,20 @@ export async function createProject(projectData) {
     const { path, link, linkHub, title, description, highlights, status } =
       projectData;
 
-    // Verificar que no exista otro project con el mismo link de demo
-    const existingByLink = await Project.findOne({ link });
-    if (existingByLink) {
-      throw new Error("El link de demo ya está registrado.");
+    if (typeof link === "string" && link.trim() !== "") {
+      const existingByLink = await Project.findOne({ link: link.trim() });
+      if (existingByLink) {
+        throw new Error("El link de demo ya está registrado.");
+      }
     }
 
-    // Verificar que no exista otro projecto con el mismo link de repositorio
-    const existingByLinkHub = await Project.findOne({ linkHub });
-    if (existingByLinkHub) {
-      throw new Error("El link de repositorio ya está registrado.");
+    if (typeof linkHub === "string" && linkHub.trim() !== "") {
+      const existingByLinkHub = await Project.findOne({
+        linkHub: linkHub.trim(),
+      });
+      if (existingByLinkHub) {
+        throw new Error("El link de repositorio ya está registrado.");
+      }
     }
 
     // Si no vienen highlights, inicializar como array vacío
