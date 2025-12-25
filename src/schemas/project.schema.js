@@ -127,10 +127,12 @@ export const updateProjectSchema = z.object({
     .refine((data) => data === undefined || data.trim() !== "", {
       message: "La descripción no puede estar vacía",
     }),
-  highlights: z.array(
-    z.string().refine((data) => data.trim() !== "", {
-      message: "El highlight no puede estar vacío",
-    })
-  ),
+  highlights: z
+    .array(
+      z.string().refine((data) => data.trim() !== "", {
+        message: "El highlight no puede estar vacío",
+      })
+    )
+    .optional(),
   status: z.boolean().default(true),
 });

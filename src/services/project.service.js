@@ -83,8 +83,8 @@ export async function updateProject(projectId, projectData, imagesDir) {
   }
 
   // --- DESCRIPTION (string ES -> {es,en}) ---
-  if (typeof templateData.description === "string") {
-    const normalizedDescriptionEs = normalizeText(templateData.description);
+  if (typeof projectData.description === "string") {
+    const normalizedDescriptionEs = normalizeText(projectData.description);
     const translatedDescriptionEn = await translateText(
       normalizedDescriptionEs,
       "EN-GB"
