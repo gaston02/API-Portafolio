@@ -1,4 +1,9 @@
-import { createProject, updateProject } from "../services/project.service.js";
+import {
+  createProject,
+  updateProject,
+  updateProjectEn,
+  getProjects,
+} from "../services/project.service.js";
 import { handleGenericError } from "../utils/error.util.js";
 import { handleGenericSuccess } from "../utils/success.util.js";
 
@@ -55,5 +60,45 @@ export async function updateProjectController(req, res, next) {
       );
     }
     next(error);
+  }
+}
+
+export async function updateProjectEnController(req, res, next) {
+  const id = req.params.id;
+  const projectData = req.body;
+
+  try {
+    const updatedProject = await updateProjectEn(id, projectData);
+    return handleGenericSuccess(
+      res,
+      200,
+      updatedProject,
+      "Proyecto actualizado con exito!!"
+    );
+  } catch (error) {
+    if (error.message.includes("proyecto no existe")) {
+      handleGenericError(res, 404, `proyecto no encontrado`);
+    } else {
+      handleGenericError(
+        res,
+        400,
+        `Error al actualizar el proyecto: ${error.message}`
+      );
+    }
+    next(error);
+  }
+}
+
+export async function getProjectsController(req, res, next) {
+  try {
+    const projects = await getProjects();
+    return handleGenericSuccess(
+      res,
+      200,
+      projects,
+      "Proyectos obtenidos con éxito!"
+    );
+  } catch (error) {
+    return handleGenericError(res, 500, `Error al obtener los proyectos: ${error}`);
   }
 }

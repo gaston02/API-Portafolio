@@ -214,3 +214,100 @@ export async function deleteOldProjectImageIfChanged({
     throw new Error(`No se pudo eliminar la imagen anterior: ${err.message}`);
   }
 }
+
+export async function updateProjectEn(projectId, projectData) {
+  try {
+    const existingProject = await Project.findOne({
+      _id: projectId,
+      status: true,
+    });
+
+    if (!existingProject) {
+      throw new Error("El proyecto no existe.");
+    }
+
+    const updatedData = {};
+
+    // --- TITLE EN ---
+    if (typeof projectData.titleEn === "string") {
+      const value = projectData.titleEn.trim();
+      if (!value) {
+        throw new Error("El título en inglés no puede estar vacío.");
+      }
+      updatedData["title.en"] = value;
+    }
+
+    // --- DESCRIPTION EN ---
+    if (typeof projectData.descriptionEn === "string") {
+      const value = projectData.descriptionEn.trim();
+      if (!value) {
+        throw new Error("La descripción en inglés no puede estar vacía.");
+      }
+      updatedData["description.en"] = value;
+    }
+
+    // --- HIGHLIGHTS.EN ---
+    if (Array.isArray(projectData.highlightsEn)) {
+      if (projectData.highlightsEn.length === 0) {
+        throw new Error("Los highlights en inglés no pueden estar vacíos.");
+      }
+
+      // Mantenemos los 'es' existentes y reemplazamos solo 'en'
+      const updatedHighlights = existingProject.highlights.map(
+        (highlight, index) => ({
+          es: highlight.es,
+          en: projectData.highlightsEn[index]?.trim() || highlight.en,
+        })
+      );
+
+      updatedData.highlights = updatedHighlights;
+    }
+
+    if (Object.keys(updatedData).length === 0) {
+      throw new Error("No se proporcionaron campos en inglés para actualizar.");
+    }
+
+    const updatedProject = await Project.findByIdAndUpdate(
+      projectId,
+      { $set: updatedData },
+      { new: true }
+    );
+
+    return updatedProject;
+  } catch (error) {
+    throw new Error(
+      `Error al actualizar campos en ingles del proyecto: ${error.message}`
+    );
+  }
+}
+
+export async function getProjects() {
+  try {
+    const projects = await Project.find({ status: true });
+    return projects;
+  } catch (error) {
+    throw new Error(`Error al obtener los proyectos: ${error.message}`);
+  }
+}
+
+export async function deleteProject(projectId) {
+  try {
+    const existingproject = await Project.findOne({
+      _id: projectId,
+      status: true,
+    });
+    if (!existingproject) {
+      throw new Error("El proyecto no existe.");
+    }
+
+    const deleteProyect = await Project.findOneAndUpdate(
+      { _id: projectId, status: true },
+      { $set: { status: false } },
+      { new: true }
+    );
+
+    return deleteProyect;
+  } catch (error) {
+    throw new Error(`Error al eliminar el proyecto: ${error.message}`);
+  }
+}

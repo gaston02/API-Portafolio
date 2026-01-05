@@ -11,6 +11,8 @@ import {
 import {
   createProjectController,
   updateProjectController,
+  updateProjectEnController,
+  getProjectsController,
 } from "../controllers/project.controller.js";
 import {
   createTemplateSchema,
@@ -65,6 +67,8 @@ router.post(
 
 router.get("/templates", authMiddleware, getTemplatesController);
 
+router.get("/projects", authMiddleware, getProjectsController);
+
 router.put(
   "/template/:id",
   authMiddleware,
@@ -98,6 +102,13 @@ router.put(
   authMiddleware,
   validateSchemaParams(idSchema),
   updateTemplateEnController
+);
+
+router.put(
+  "/project/:id/en",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  updateProjectEnController
 );
 
 router.delete(
