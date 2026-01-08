@@ -3,6 +3,7 @@ import {
   updateProject,
   updateProjectEn,
   getProjects,
+  deleteProject,
 } from "../services/project.service.js";
 import { handleGenericError } from "../utils/error.util.js";
 import { handleGenericSuccess } from "../utils/success.util.js";
@@ -99,6 +100,34 @@ export async function getProjectsController(req, res, next) {
       "Proyectos obtenidos con éxito!"
     );
   } catch (error) {
-    return handleGenericError(res, 500, `Error al obtener los proyectos: ${error}`);
+    return handleGenericError(
+      res,
+      500,
+      `Error al obtener los proyectos: ${error}`
+    );
+  }
+}
+
+export async function deleteProjectController(req, res, next) {
+  const id = req.params.id;
+  try {
+    const deletedProject = await deleteProject(id);
+    return handleGenericSuccess(
+      res,
+      204,
+      deletedProject,
+      "Proyecto eliminado con éxito!"
+    );
+  } catch (error) {
+    if (error.message.includes("proyecto no existe")) {
+      handleGenericError(res, 404, `proyecto no encontrado`);
+    } else {
+      handleGenericError(
+        res,
+        400,
+        `Error al actualizar el proyecto: ${error.message}`
+      );
+    }
+    next(error);
   }
 }

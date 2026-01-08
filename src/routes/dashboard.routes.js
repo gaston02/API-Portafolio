@@ -13,6 +13,7 @@ import {
   updateProjectController,
   updateProjectEnController,
   getProjectsController,
+  deleteProjectController,
 } from "../controllers/project.controller.js";
 import {
   createTemplateSchema,
@@ -116,6 +117,13 @@ router.delete(
   authMiddleware,
   validateSchemaParams(idSchema),
   deleteTemplateController
+);
+
+router.delete(
+  "/project/:id",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  deleteProjectController
 );
 
 router.get("/templates/deletes", authMiddleware, getTemplatesDeletesController);
