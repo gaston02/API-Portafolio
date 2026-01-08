@@ -14,6 +14,8 @@ import {
   updateProjectEnController,
   getProjectsController,
   deleteProjectController,
+  getDeletesProjectsController,
+  returndeleteProjectController,
 } from "../controllers/project.controller.js";
 import {
   createTemplateSchema,
@@ -128,11 +130,20 @@ router.delete(
 
 router.get("/templates/deletes", authMiddleware, getTemplatesDeletesController);
 
+router.get("/projects/deletes", authMiddleware, getDeletesProjectsController);
+
 router.put(
   "/template/:id/delete",
   authMiddleware,
   validateSchemaParams(idSchema),
   avtiveTemplateDeleteController
+);
+
+router.put(
+  "/project/:id/delete",
+  authMiddleware,
+  validateSchemaParams(idSchema),
+  returndeleteProjectController
 );
 
 export default router;

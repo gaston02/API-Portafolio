@@ -4,6 +4,8 @@ import {
   updateProjectEn,
   getProjects,
   deleteProject,
+  getDeletesProjects,
+  returndeleteProject,
 } from "../services/project.service.js";
 import { handleGenericError } from "../utils/error.util.js";
 import { handleGenericSuccess } from "../utils/success.util.js";
@@ -118,6 +120,43 @@ export async function deleteProjectController(req, res, next) {
       deletedProject,
       "Proyecto eliminado con éxito!"
     );
+  } catch (error) {
+    if (error.message.includes("proyecto no existe")) {
+      handleGenericError(res, 404, `proyecto no encontrado`);
+    } else {
+      handleGenericError(
+        res,
+        400,
+        `Error al actualizar el proyecto: ${error.message}`
+      );
+    }
+    next(error);
+  }
+}
+
+export async function getDeletesProjectsController(req, res, next) {
+  try {
+    const projectsDeletes = await getDeletesProjects();
+    return handleGenericSuccess(
+      res,
+      200,
+      projectsDeletes,
+      "Proyectos eliminados obtenidos con éxito!"
+    );
+  } catch (error) {
+    return handleGenericError(
+      res,
+      500,
+      `Error al obtener los proyectos eliminados: ${error}`
+    );
+  }
+}
+
+export async function returndeleteProjectController(req, res, next) {
+  const id = req.params.id;
+  try {
+    const deletedProject = await returndeleteProject(id);
+    return handleGenericSuccess(res, 204, deletedProject, "Proyecto activado!");
   } catch (error) {
     if (error.message.includes("proyecto no existe")) {
       handleGenericError(res, 404, `proyecto no encontrado`);

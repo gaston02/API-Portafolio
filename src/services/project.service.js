@@ -311,3 +311,36 @@ export async function deleteProject(projectId) {
     throw new Error(`Error al eliminar el proyecto: ${error.message}`);
   }
 }
+
+export async function getDeletesProjects() {
+  try {
+    const projectsDeletes = await Project.find({ status: false });
+    return projectsDeletes;
+  } catch (error) {
+    throw new Error(
+      `Error al obtener los proyectos eliminados: ${error.message}`
+    );
+  }
+}
+
+export async function returndeleteProject(projectId) {
+  try {
+    const existingproject = await Project.findOne({
+      _id: projectId,
+      status: false,
+    });
+    if (!existingproject) {
+      throw new Error("El proyecto no existe.");
+    }
+
+    const deleteProyect = await Project.findOneAndUpdate(
+      { _id: projectId, status: false },
+      { $set: { status: true } },
+      { new: true }
+    );
+
+    return deleteProyect;
+  } catch (error) {
+    throw new Error(`Error al activar el proyecto: ${error.message}`);
+  }
+}
