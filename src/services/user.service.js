@@ -34,6 +34,18 @@ export async function sendContactEmailToOwner({ name, email, message }) {
     html,
   });
 
+  const newUser = await createUser({ name, email, message });
+
   // opcional: puedes retornar algo útil
   return { ok: true };
+}
+
+export async function createUser({name, email, message}) {
+  try {
+    const user = new User({ name, email, message });
+    await user.save();
+    return user;
+  } catch (error) {
+    throw new Error(`Error al crear el usuario: ${error.message}`);
+  }
 }
