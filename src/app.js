@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import auth from './routes/auth.routes.js';
 import dashboard from './routes/dashboard.routes.js';
 import payment from './routes/payment.routes.js';
+import message from "./routes/message.routes.js";
 
 const app = express();
 app.use(morgan('dev'));
@@ -13,5 +14,6 @@ app.use(cookieParser());
 app.use("/api", auth);
 app.use("/api", dashboard);
 app.use("/api", payment);
+app.use("/api", message);
 
 export default app;
